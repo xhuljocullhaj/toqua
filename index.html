@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Toqua Ship Marketplace – Demo</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* simple modal styles */
+  #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center}
+  #modal .inner{background:#fff;border-radius:.5rem;padding:1.5rem;max-width:28rem;width:90%}
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+<!-- landing -->
+<section id="landing" class="min-h-screen flex flex-col items-center justify-center text-center space-y-6 bg-gradient-to-b from-blue-700 to-blue-900 text-white">
+  <h1 class="text-4xl font-bold">Toqua Ship Marketplace</h1>
+  <p class="max-w-md">Free brokerage layer that funnels owners & charterers into Toqua’s AI Ship Kernel.</p>
+  <div class="space-x-4">
+    <button id="ownerBtn" class="bg-white text-blue-700 px-6 py-3 rounded shadow">Continue as Owner</button>
+    <button id="marketBtn" class="bg-white text-blue-700 px-6 py-3 rounded shadow">Browse as Charterer</button>
+  </div>
+</section>
+
+<!-- owner wizard -->
+<section id="owner" class="hidden p-6 max-w-xl mx-auto">
+  <h2 class="text-2xl font-bold mb-4">List your vessel</h2>
+  <div id="step1">
+    <input id="imoInput" class="border p-2 w-48 mr-2" placeholder="IMO number"/>
+    <button id="autoBtn" class="bg-blue-700 text-white px-4 py-2">Auto-fill</button>
+  </div>
+  <div id="step2" class="hidden space-y-2 mt-4">
+    <input id="warrantyInput" class="border p-2 w-full" placeholder="Speed/Fuel Warranty"/>
+    <input id="hireInput" class="border p-2 w-full" placeholder="Hire rate €/day"/>
+    <input id="availInput" class="border p-2 w-full" placeholder="Available from (YYYY-MM-DD)"/>
+    <button id="publishBtn" class="mt-2 bg-green-600 text-white px-6 py-2">Publish Listing</button>
+    <p class="text-sm text-blue-600">Not sure about warranty? <a href="#" class="underline">Use Toqua AI</a></p>
+  </div>
+  <div id="ownerDone" class="hidden mt-6 text-center">
+    <p class="font-semibold">Listing published! Go to Marketplace to see it.</p>
+    <button id="toMarket" class="mt-2 text-blue-700 underline">Open Marketplace</button>
+  </div>
+</section>
+
+<!-- marketplace -->
+<section id="market" class="hidden p-6">
+  <h1 class="text-2xl font-bold mb-4">Marketplace</h1>
+  <div class="flex space-x-4 mb-4">
+    <select id="typeFilter" class="border p-2">
+      <option>All Types</option><option>Tanker</option><option>Bulker</option><option>Container</option>
+    </select>
+    <select id="regionFilter" class="border p-2">
+      <option>All Regions</option><option>Europe</option><option>Asia</option><option>USA</option>
+    </select>
+  </div>
+  <div id="cards" class="grid md:grid-cols-2 gap-4"></div>
+</section>
+
+<!-- modal -->
+<div id="modal" class="flex"><div class="inner"></div></div>
+
+<script>
+/* ---------- demo vessel data ---------- */
+const vessels=[
+ {imo:"9384194",name:"Eagle Venice",type:"Tanker",region:"Europe",location:"Rotterdam",dwt:115000,hire:45000,warranty:"13.5 kn @ 29 MT/d",available:"2025-05-20",img:"https://images.unsplash.com/photo-1504039393502-9f715e11b64c?auto=format&fit=crop&w=800&q=60"},
+ {imo:"9463013",name:"Berge Everest",type:"Bulker",region:"Asia",location:"Singapore",dwt:180000,hire:32000,warranty:"12 kn @ 45 MT/d",available:"ASAP",img:"https://images.unsplash.com/photo-1508435235922-1a44b6f54c03?auto=format&fit=crop&w=800&q=60"},
+ /* ...8 more demo ships (add if desired) ...*/
+];
+
+/* ---------- simple state ---------- */
+let listings=[...vessels];
+
+/* ---------- helpers ---------- */
+const $=sel=>document.querySelector(sel);
+function show(sec){['landing','owner','market'].forEach(id=>$('#'+id).classList.add('hidden'));$('#'+sec).classList.remove('hidden');}
+function renderCards(){
+  const t=$("#typeFilter").value,r=$("#regionFilter").value;
+  const list=listings.filter(v=>(t==='All Types'||v.type===t)&&(r==='All Regions'||v.region===r));
+  $("#cards").innerHTML=list.map(v=>`<div class="bg-white shadow rounded p-4">
+   <img src="${v.img}" class="w-full h-40 object-cover rounded">
+   <h3 class="font-semibold mt-2">${v.name}</h3>
+   <p>${v.type} • IMO ${v.imo}</p>
+   <p>${v.location}</p>
+   <p>Hire: €${v.hire.toLocaleString()} / day</p>
+   <button class="mt-2 w-full bg-blue-700 text-white py-2 rounded" onclick="openModal('${v.imo}')">View More</button>
+  </div>`).join('');
+}
+function openModal(imo){
+  const v=listings.find(x=>x.imo===imo);
+  $('#modal .inner').innerHTML=`<h2 class="text-xl font-bold mb-2">${v.name}</h2>
+   <img src="${v.img}" class="w-full h-40 object-cover rounded mb-2">
+   <p><strong>Type:</strong> ${v.type}</p>
+   <p><strong>Location:</strong> ${v.location}</p>
+   <p><strong>DWT:</strong> ${v.dwt?.toLocaleString()}</p>
+   <p><strong>Warranty:</strong> ${v.warranty}</p>
+   <p><strong>Hire:</strong> €${v.hire.toLocaleString()}/day</p>
+   <p><strong>Available:</strong> ${v.available}</p>
+   <button onclick="$('#modal').style.display='none'" class="mt-3 bg-blue-700 text-white px-6 py-2 rounded w-full">Request Charter</button>
+   <p class="text-sm text-blue-600 mt-2">Sharpen warranty → <a class="underline" href="#">Try Toqua AI</a></p>`;
+  $('#modal').style.display='flex';
+}
+
+/* ---------- landing buttons ---------- */
+$('#ownerBtn').onclick=()=>show('owner');
+$('#marketBtn').onclick=()=>{show('market');renderCards();};
+
+/* ---------- owner flow ---------- */
+$('#autoBtn').onclick=()=>{
+  const imo=$('#imoInput').value.trim();
+  const v=vessels.find(x=>x.imo===imo);
+  if(!v){alert('IMO not found in demo list');return;}
+  Object.keys(v).forEach(k=>k!=='img'&&( $('#'+k+'Input') && ($('#'+k+'Input').value=v[k])));
+  $('#step2').classList.remove('hidden');
+};
+$('#publishBtn').onclick=()=>{
+  const imo=$('#imoInput').value.trim();
+  const existing=listings.find(x=>x.imo===imo);
+  if(existing){alert('Already listed');return;}
+  const newV={
+    imo,name:$('#warrantyInput').dataset?$('#warrantyInput').dataset.name:imo,
+    type:"Tanker",region:"Europe",location:"",dwt:0,
+    warranty:$('#warrantyInput').value,hire:+$('#hireInput').value||0,
+    available:$('#availInput').value||"ASAP",img:"https://images.unsplash.com/photo-1558980664-10c2366d6b19?auto=format&fit=crop&w=800&q=60"
+  };
+  listings.push(newV);
+  $('#ownerDone').classList.remove('hidden');
+  $('#step1').style.display='none';$('#step2').style.display='none';
+};
+$('#toMarket').onclick=()=>{show('market');renderCards();};
+
+/* ---------- filters ---------- */
+$('#typeFilter').onchange=renderCards;
+$('#regionFilter').onchange=renderCards;
+
+/* ---------- modal close on bg click ---------- */
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').style.display='none'};
+</script>
+</body>
+</html>
